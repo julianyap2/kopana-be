@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "target": "es2020",
+        "module": "commonjs",
+        "skipDefaultLibCheck": true,
+        "skipLibCheck": true,
+        "strictBindCallApply": true,
+        "strictNullChecks": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "allowUmdGlobalAccess": true,
+        "declaration": false,
+        "sourceMap": false,
+        "allowJs": true
+    },
+    "include": [
+        "**/*.ts",
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

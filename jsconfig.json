@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "target": "es2020",
+        "module": "commonjs",
+        "types": [
+            "node",
+            "mongoose"
+        ]
+    },
+    "include": [
+        "routes",
+        "models",
+        "controllers",
+        "middlewares"
+    ]
+}

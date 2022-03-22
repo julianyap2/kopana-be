@@ -1,3 +1,4 @@
+const express = require('express')
 const Users = require("../models/Users");
 const fs = require("fs-extra");
 const path = require("path");
@@ -10,53 +11,53 @@ const SetoranPokok = require("../models/SetoranPokok");
 const Saran = require("../models/Saran");
 const { readFileSync } = require("fs");
 const { join } = require("path");
+const { UserRoleModel } = require('../models/UserRole');
 
+// /**
+//  * @type {Record<string, (req: express.Request, res: express.Response, next: express.NextFunction) => any>}
+//  */
 module.exports = {
   //crud sign
+
+  /**
+   * 
+   * @param {express.Request} req 
+   * @param {express.Response} res 
+   */
   actionSignUp: async (req, res) => {
     try {
       const { nama, password, alamat, email, noPegawaiPertamina, noTlpn } =
         req.body;
-      var newUser = new Users({
-        nama: nama,
-        password: password,
-        alamat: alamat,
-        email: email,
-        noPegawaiPertamina: noPegawaiPertamina,
-        noTlpn: noTlpn,
-      });
-      await Users.findOne({ email: newUser.email })
-        .then(async (profile) => {
-          if (!profile) {
-            bcrypt.hash(newUser.password, 10, async (err, hash) => {
-              if (err) {
-                console.log("Error is", err.message);
-              } else {
-                newUser.password = hash;
-                let test = await Member.create({
-                  nama: newUser.nama,
-                  alamat: newUser.nama,
-                  email: newUser.email,
-                  nomerPegawaiPertamina: newUser.noPegawaiPertamina,
-                  nomerTelepon: newUser.noTlpn,
-                });
-                await newUser
-                  .save()
-                  .then(() => {
-                    res.status(200).send(test);
-                  })
-                  .catch((err) => {
-                    res.status(500).json({ message: err });
-                  });
-              }
-            });
-          } else {
-            res.status(500).json({ message: "User already exists..." });
-          }
-        })
-        .catch((err) => {
-          res.status(500).json({ message: err });
+
+      const defaultRole = await UserRoleModel.findOne({ name: 'user' }).exec();
+
+      const profile = await Users.findOne({ email });
+      if (!profile) {
+        const hashed = bcrypt.hashSync(password, 10);
+        const newUser = new Users({
+          nama: nama,
+          password: hashed,
+          alamat: alamat,
+          email: email,
+          noPegawaiPertamina: noPegawaiPertamina,
+          noTlpn: noTlpn,
+          roles: [defaultRole._id]
         });
+
+        const newMember = new Member({
+          nama: newUser.nama,
+          alamat: newUser.nama,
+          email: newUser.email,
+          nomerPegawaiPertamina: newUser.noPegawaiPertamina,
+          nomerTelepon: newUser.noTlpn,
+        });
+
+        await newUser.save();
+        return res.status(201).json(newMember);
+      }
+      else {
+        res.status(400).json({ message: "User already exists..." });
+      }
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
