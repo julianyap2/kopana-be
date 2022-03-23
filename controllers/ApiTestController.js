@@ -1,132 +1,16 @@
-const express = require('express')
-const Users = require("../models/Users");
 const fs = require("fs-extra");
 const path = require("path");
-const bcrypt = require("bcryptjs");
 const Galeri = require("../models/Galeri");
 const SetoranWajib = require("../models/SetoranWajib");
 const FormDaftar = require("../models/FormDaftar");
 const Member = require("../models/Member");
 const SetoranPokok = require("../models/SetoranPokok");
 const Saran = require("../models/Saran");
-const { readFileSync } = require("fs");
-const { join } = require("path");
-const { UserRoleModel } = require('../models/UserRole');
 
 // /**
 //  * @type {Record<string, (req: express.Request, res: express.Response, next: express.NextFunction) => any>}
 //  */
 module.exports = {
-  //crud sign
-
-  /**
-   * 
-   * @param {express.Request} req 
-   * @param {express.Response} res 
-   */
-  actionSignUp: async (req, res) => {
-    try {
-      const { nama, password, alamat, email, noPegawaiPertamina, noTlpn } =
-        req.body;
-
-      const defaultRole = await UserRoleModel.findOne({ name: 'user' }).exec();
-
-      const profile = await Users.findOne({ email });
-      if (!profile) {
-        const hashed = bcrypt.hashSync(password, 10);
-        const newUser = new Users({
-          nama: nama,
-          password: hashed,
-          alamat: alamat,
-          email: email,
-          noPegawaiPertamina: noPegawaiPertamina,
-          noTlpn: noTlpn,
-          roles: [defaultRole._id]
-        });
-
-        const newMember = new Member({
-          nama: newUser.nama,
-          alamat: newUser.nama,
-          email: newUser.email,
-          nomerPegawaiPertamina: newUser.noPegawaiPertamina,
-          nomerTelepon: newUser.noTlpn,
-        });
-
-        await newUser.save();
-        return res.status(201).json(newMember);
-      }
-      else {
-        res.status(400).json({ message: "User already exists..." });
-      }
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
-  },
-
-  actionSignin: async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      const user = await Users.findOne({ email: email });
-      const member = await Member.findOne({ email: email });
-      if (user) {
-        const isPasswordMatch = await bcrypt.compare(password, user.password);
-        if (isPasswordMatch) {
-          res.status(200).json({
-            message: "Login successful",
-            data: {
-              nama: member.nama,
-              alamat: member.alamat,
-              email: member.email,
-              noPegawaiPertamina: member.nomerPegawaiPertamina,
-              noTlpn: member.nomerTelepon,
-              id: member._id,
-              idUser: user._id,
-            },
-          });
-        } else {
-          res.status(400).json({ error: "Invalid Password" });
-        }
-      } else {
-        res.status(401).json({ error: "User does not exist" });
-      }
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
-  },
-
-  changePassword: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { oldPassword, newPassword: password } = req.body;
-      const user = await Users.findOne({ _id: id });
-
-      const isPasswordMatch = await bcrypt.compare(oldPassword, user.password);
-
-      if (!isPasswordMatch) {
-        return res.status(400).json({
-          error: "Password lama tidak cocok",
-        });
-      }
-
-      const isSamePassword = await bcrypt.compare(password, user.password);
-      if (isSamePassword) {
-        res.status(400).json({
-          error: "Password baru tida boleh sama dengan password lama",
-        });
-      } else if (req.body.newPassword !== req.body.confirmNewPassword) {
-        res.status(400).json({ message: "Confirmasi password tidak sama" });
-      } else if (
-        req.body.newPassword === req.body.confirmNewPassword &&
-        req.body.newPassword !== isSamePassword
-      ) {
-        user.password = password;
-        await user.save();
-        res.status(200).json({ message: "Password berhasil berubah" });
-      }
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
-  },
 
   //Galeri
   addGaleri: async (req, res) => {

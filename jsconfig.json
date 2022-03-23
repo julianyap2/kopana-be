@@ -5,12 +5,16 @@
         "types": [
             "node",
             "mongoose"
-        ]
+        ],
     },
     "include": [
-        "routes",
-        "models",
-        "controllers",
-        "middlewares"
+        "global.d.ts",
+        "routes/**/*.js",
+        "models/**/*.js",
+        "controllers/**/*.js",
+        "middlewares/**/*.js"
+    ],
+    "exclude": [
+        "node_modules"
     ]
 }

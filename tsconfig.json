@@ -11,7 +11,14 @@
         "allowUmdGlobalAccess": true,
         "declaration": false,
         "sourceMap": false,
-        "allowJs": true
+        "allowJs": true,
+        "outDir": "dist",
+
+        "types": [
+            "express-session"
+        ],
+
+        "esModuleInterop": true
     },
     "include": [
         "**/*.ts",
