@@ -14,13 +14,11 @@
         "allowJs": true,
         "outDir": "dist",
 
-        "types": [
-            "express-session"
-        ],
-
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "importHelpers": false,
     },
     "include": [
+        "global.d.ts",
         "**/*.ts",
     ],
     "exclude": [

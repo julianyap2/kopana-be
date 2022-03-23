@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { ObjectId } = mongoose.Schema;
 
-const memberSchema = new mongoose.Schema({
+const MemberSchema = new mongoose.Schema({
   foto: {
     type: String,
   },
@@ -10,6 +10,7 @@ const memberSchema = new mongoose.Schema({
   },
   email: {
     type: String,
+    unique: true,
   },
   nomerAnggota: {
     type: String,
@@ -29,15 +30,18 @@ const memberSchema = new mongoose.Schema({
   fotoKtp: {
     type: String,
   },
+  user: {
+    type: ObjectId,
+    ref: 'Users'
+  },
   setoranId: [{
     type: ObjectId,
     ref: 'SetoranWajib'
   }],
-
   setoranPokokId: [{
     type: ObjectId,
     ref: 'SetoranPokok'
   }]
 })
 
-module.exports = mongoose.model('Member', memberSchema)
+module.exports = mongoose.model('Member', MemberSchema)

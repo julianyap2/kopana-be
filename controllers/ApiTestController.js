@@ -218,6 +218,7 @@ module.exports = {
         daftar,
       });
     } catch (error) {
+      console.error(error);
       res.status(500).json({ message: error });
     }
   },
@@ -290,6 +291,8 @@ module.exports = {
 
   //profile
   ViewDataProfile: async (req, res) => {
+
+
     try {
       const member = await Member.find().populate({
         path: "setoranId",

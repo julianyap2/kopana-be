@@ -1,27 +1,32 @@
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { UserRoleModel } from "../models/UserRole";
 import Member = require("../models/Member");
 import bcrypt = require("bcryptjs");
-import Users = require("../models/Users");
+import createHttpError = require("http-errors");
+
 import { DefineRoute } from "./controller-util";
+import Users, { IUser } from "../models/Users";
+import session = require("express-session");
+import {
+   HasRoleAdmin,
+   IsLoggedIn,
+   Unauthorized,
+} from "../middlewares/auth";
 
-console.log(Member);
-
+const SALT = 12;
 const userController: Controller = {
    ["/whoami"]: {
       method: "get",
-      async action(req, res) {
-         const user = await Users.findById(req.query.userId).exec();
-         if (user) return res.status(200).json(user);
-         res.status(404).json({
-            message: "User not found",
-         });
+      async action(req, res, next) {
+         const u = req.user;
+         if (!u) return next(createHttpError(Unauthorized()));
+         res.json(u);
       },
    },
 
    ["/sign-up"]: {
       method: "post",
-      async action(req: Request, res: Response) {
+      async action(req: Request, res: Response, next) {
          try {
             const {
                nama,
@@ -32,13 +37,17 @@ const userController: Controller = {
                noTlpn,
             } = req.body;
 
+            console.log(req.body);
+
             const defaultRole = await UserRoleModel.findOne({
                name: "user",
             }).exec();
+
+            console.log(defaultRole);
             const userExist = await Users.findOne({ email });
 
             if (!userExist) {
-               const hashed = bcrypt.hashSync(password, 12);
+               const hashed = bcrypt.hashSync(password, SALT);
                const newUser = await Users.create({
                   nama: nama,
                   password: hashed,
@@ -62,25 +71,42 @@ const userController: Controller = {
                res.status(400).json({ message: "User already exists..." });
             }
          } catch (error) {
-            res.status(500).json({ message: "Internal server error" });
+            next(createHttpError(500, error));
          }
       },
    },
 
    ["/login"]: DefineRoute(
       "post",
-      async function Login(req: Request, res: Response) {
+      async function Login(req: Request, res: Response, next) {
          console.log("User try to login...");
+
+         if (req.user) {
+            const user = req.user;
+            const member = Member.findOne({ email: user.email });
+         }
+
          try {
             const { email, password } = req.body;
+            if (!email && !password)
+               return next(createHttpError(400, Error("No Input!")));
+
             const user = await Users.findOne({ email: email });
-            const member = await Member.findOne({ email: email });
             if (user) {
                const isPasswordMatch = await bcrypt.compare(
                   password,
                   user.password
                );
+
                if (isPasswordMatch) {
+                  delete (user as any).password;
+                  req.user = req.session.user = user as any;
+
+                  if (user.email === "admin@admin.com") {
+                     return res.status(200).json(user);
+                  }
+
+                  const member = await Member.findOne({ email: email });
                   res.status(200).json({
                      message: "Login successful",
                      data: {
@@ -95,39 +121,48 @@ const userController: Controller = {
                   });
                } else {
                   console.log("Fail wrong password");
-                  res.status(400).json({ error: "Invalid Password" });
+                  next(createHttpError(400, Error("Invalid Password")));
                }
             } else {
                console.log("Not Exist!");
-               res.status(401).json({ error: "User does not exist" });
+               return next(createHttpError(404, Error("User not found!")));
             }
          } catch (error) {
             console.error(error);
-            res.status(500).json({ message: "Internal server error" });
+            return next(createHttpError(500, error));
          }
       }
    ),
 
    ["/logout"]: DefineRoute("get", function Logout(req, res) {
-      req.session.cookie;
-      req.session.destroy(function (err) {
-         if (err) {
-            console.error(err);
-            return res.sendStatus(500);
-         }
+      if (req.user) {
+         req.session.destroy(function (err) {
+            if (err) {
+               console.error(err);
+               return res.sendStatus(500);
+            }
 
-         res.status(200).json({
-            message: "Logout succes!",
+            return res.status(200).json({
+               message: "Logout succes!",
+            });
          });
-      });
+      }
+      res.sendStatus(200);
    }),
 
    ["/update-password"]: DefineRoute(
       "post",
-      async function UpdatePassword(req: Request, res: Response) {
+      IsLoggedIn,
+      async function UpdatePassword(req: Request, res: Response, next) {
+         if (!req.user) return res.sendStatus(403);
+
          try {
-            const { oldPassword, newPassword: password } = req.body;
-            const user = await Users.findOne({ _id: req.session.id });
+            const {
+               oldPassword,
+               newPassword: password,
+               confirmNewPassword,
+            } = req.body;
+            const user = await Users.findOne({ _id: req.user._id });
 
             if (!user) {
                return res.status(404).json({
@@ -151,34 +186,42 @@ const userController: Controller = {
                user.password
             );
             if (isSamePassword) {
-               res.status(400).json({
-                  error: "Password baru tida boleh sama dengan password lama",
-               });
-            } else if (
-               req.body.newPassword !== req.body.confirmNewPassword
-            ) {
+               return next(
+                  createHttpError(
+                     400,
+                     Error(
+                        "Password baru tidak boleh sama dengan password lama!"
+                     )
+                  )
+               );
+            } else if (password !== confirmNewPassword) {
                res.status(400).json({
                   message: "Konfirmasi password tidak sama",
                });
             } else if (
-               req.body.newPassword === req.body.confirmNewPassword &&
-               req.body.newPassword !== isSamePassword
+               password === req.body.confirmNewPassword &&
+               password !== isSamePassword
             ) {
-               user.password = password;
+               user.password = bcrypt.hashSync(password, SALT);
                await user.save();
                res.status(200).json({
                   message: "Password berhasil berubah",
                });
             }
          } catch (error) {
-            res.status(500).json({ message: "Internal server error" });
+            next(createHttpError(500, error));
          }
       }
    ),
 
-   ["/user/get-all"]: DefineRoute("get", function getAllUser(req, res) {
-      res.sendStatus(500);
-   }),
+   ["/user/get-all"]: DefineRoute(
+      "get",
+      IsLoggedIn,
+      HasRoleAdmin,
+      async function getAllUser(req, res) {
+         res.json(await Users.find().exec());
+      }
+   ),
 };
 
 export = userController;

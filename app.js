@@ -5,11 +5,11 @@ var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 const methodOverride = require("method-override");
 const session = require("express-session");
-const flash = require("connect-flash");
 const cors = require("cors");
 
 const { join } = require("path");
 const { UserRoleModel } = require("./models/UserRole");
+const { default: UserModel } = require("./models/Users");
 
 /**
  * 
@@ -27,7 +27,8 @@ module.exports = async function Application(cb) {
     var app = express();
 
     app.use(cors({
-      origin: '*',
+      origin: 'http://localhost:3001',
+      credentials: true
     }));
 
     // view engine setup
@@ -38,13 +39,23 @@ module.exports = async function Application(cb) {
     const oneday = 1000 * 60 * 60 * 24;
     app.use(
       session({
+        name: 'kopana',
         secret: "julian:app",
         resave: false,
         saveUninitialized: true,
         cookie: { maxAge: oneday },
-      })
+      }),
+      async (req, res, next) => {
+        if (req.session.user) {
+          req.user = req.session.user;
+          const { roles } = await UserModel.findById(req.user._id)
+            .populate('roles')
+            .exec();
+          req.user.roles = roles;
+        }
+        next();
+      }
     );
-    app.use(flash());
     app.use(logger("dev"));
     app.use(express.json());
     app.use(express.urlencoded({ extended: false }));
@@ -57,14 +68,6 @@ module.exports = async function Application(cb) {
     // app.use('/users', usersRouter);
     // admin
     // app.use('/admin', adminRouter);
-    app.use((req, res, next) => {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Method', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Method', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-      // res.setHeader('Content-Type', 'application/json; charset=utf-8')
-      next();
-    });
     app.use("/api/v1", require('./routes/api'));
 
     // catch 404 and forward to error handler
@@ -90,15 +93,28 @@ module.exports = async function Application(cb) {
 
 async function createDefaultRoles() {
   const Admin = { name: 'admin' };
-  const User = { name: 'admin' };
+  const User = { name: 'user' };
 
-  const adminRole = await UserRoleModel.findOne(Admin).exec();
+  let adminRole = await UserRoleModel.findOne(Admin).exec();
   if (!adminRole) {
-    await (await UserRoleModel.create(Admin)).save();
+    adminRole = await (await UserRoleModel.create(Admin)).save();
   }
 
-  const userRole = await UserRoleModel.findOne(User).exec();
+  let userRole = await UserRoleModel.findOne(User).exec();
   if (!userRole) {
-    await (await UserRoleModel.create(User)).save();
+    userRole = await (await UserRoleModel.create(User)).save();
   }
+
+  let userAdmin = await UserModel.findOne({ email: 'admin@admin.com' });
+  // if(userAdmin) userAdmin.delete();
+  if (!userAdmin) {
+    await (await UserModel.create({
+      nama: 'admin',
+      password: require('bcryptjs').hashSync('admin', 12),
+      email: 'admin@admin.com',
+      noPegawaiPertamina: 'aahusvdf8ub293u',
+      roles: [userRole._id, adminRole._id]
+    })).save()
+  }
+
 }

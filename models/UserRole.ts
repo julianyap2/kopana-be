@@ -19,7 +19,8 @@ export const UserRoleSchema = new Schema<IUserRole>(
    }
 );
 
-export const UserRoleModel = model("user_role", UserRoleSchema);
+export const UserRoleModel = model("UserRole", UserRoleSchema);
+export default UserRoleModel;
 
 export interface IUserRole {
    name: string;

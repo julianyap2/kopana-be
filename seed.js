@@ -18,6 +18,7 @@ seeder.connect(
       "./models/Member",
       "./models/SetoranWajib",
       "./models/Users",
+      "./models/UserRole"
     ]);
 
     // Clear specified collections

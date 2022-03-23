@@ -1,5 +1,5 @@
 import { Schema, model, Model } from "mongoose";
-import { UserRoleModel } from "./UserRole";
+import { IUserRole } from "./UserRole";
 
 const { Types } = Schema;
 const UserSchema = new Schema<IUser>({
@@ -23,7 +23,7 @@ const UserSchema = new Schema<IUser>({
       unique: true,
    },
    noTlpn: String,
-   roles: [{ type: Types.ObjectId, ref: UserRoleModel }],
+   roles: [{ type: Types.ObjectId, ref: "UserRole" }],
    createDate: {
       type: Types.Date,
       default: Date.now,
@@ -33,19 +33,19 @@ const UserSchema = new Schema<IUser>({
 const UserModel = model("Users", UserSchema) as UserModel;
 //@ts-ignore
 UserModel.Schema = UserSchema;
-export = UserModel;
 
-interface UserModel extends Model<IUser> {
+export default UserModel;
+export interface UserModel extends Model<IUser> {
    readonly Schema: typeof UserSchema;
 }
 
-interface IUser {
+export interface IUser {
    nama: string;
    email: string;
    password: string;
    noPegawaiPertamina: string;
    createDate: Date;
-   roles: Array<Schema.Types.ObjectId>;
+   roles: Array<IUserRole>;
 
    noTlpn?: string;
    //  roles

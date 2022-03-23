@@ -9,10 +9,15 @@ require.extensions['.ts'] = function (mod, filename) {
             target: ts.ScriptTarget.ES2020,
             module: ts.ModuleKind.CommonJS,
             declaration: false,
-            sourceMap: false,
+
+            sourceMap: true,
+            inlineSourceMap: true,
+            inlineSources: true,
+
             allowJs: true,
             strictBindCallApply: true,
             strictNullChecks: true,
+            importHelpers: true,
         },
         fileName: basename(filename),
         moduleName: filename,
