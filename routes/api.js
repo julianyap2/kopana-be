@@ -3,7 +3,7 @@ const router = require('express').Router({
 });
 
 const galeriController = require('../controllers/galeri.controller');
-const setoranController = require('../controllers/setoran-wajib.controller');
+const setoranController = require('../controllers/setoran.controller');
 const userController = require('../controllers/user.controller');
 const apiController = require('../controllers/ApiTestController');
 const { uploadSingle, uploadMultiple, uploadSingleFix } = require('../middlewares/multer');

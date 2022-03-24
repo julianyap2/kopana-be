@@ -294,10 +294,8 @@ module.exports = {
 
 
     try {
-      const member = await Member.find().populate({
-        path: "setoranId",
-        select: "id tanggal deskripsi",
-      });
+      const member = await Member.find().exec();
+
       res.status(200).json({
         data: member,
       });

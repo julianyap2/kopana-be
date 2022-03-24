@@ -10,6 +10,7 @@ const cors = require("cors");
 const { join } = require("path");
 const { UserRoleModel } = require("./models/UserRole");
 const { default: UserModel } = require("./models/Users");
+const Member = require("./models/Member");
 
 /**
  * 
@@ -46,6 +47,7 @@ module.exports = async function Application(cb) {
         cookie: { maxAge: oneday },
       }),
       async (req, res, next) => {
+        // console.log(req.session);
         if (req.session.user) {
           req.user = req.session.user;
           const { roles } = await UserModel.findById(req.user._id)
@@ -105,16 +107,25 @@ async function createDefaultRoles() {
     userRole = await (await UserRoleModel.create(User)).save();
   }
 
-  let userAdmin = await UserModel.findOne({ email: 'admin@admin.com' });
+  let userAdmin = await UserModel.findOne({ email: 'admin' });
   // if(userAdmin) userAdmin.delete();
   if (!userAdmin) {
-    await (await UserModel.create({
+    const user = await UserModel.create({
       nama: 'admin',
       password: require('bcryptjs').hashSync('admin', 12),
-      email: 'admin@admin.com',
-      noPegawaiPertamina: 'aahusvdf8ub293u',
+      email: 'admin',
+      noPegawaiPertamina: '@admin:pertamina',
       roles: [userRole._id, adminRole._id]
-    })).save()
+    });
+
+    const member = await Member.create({
+      nama: user.nama,
+      alamat: user.nama,
+      email: user.email,
+      nomerPegawaiPertamina: user.noPegawaiPertamina,
+      nomerTelepon: user.noTlpn,
+      user: user._id
+    });
   }
 
 }

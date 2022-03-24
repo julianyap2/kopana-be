@@ -1,13 +1,13 @@
 import { DefineRoute } from "./controller-util";
-import SetoranWajib from "../models/SetoranWajib";
-import SetoranPokok from "../models/SetoranPokok";
-import Member from "../models/Member";
+import SetoranWajib = require("../models/SetoranWajib");
+import SetoranPokok = require("../models/SetoranPokok");
+import Member = require("../models/Member");
 import {
    HasRoleAdmin,
    IsLoggedIn,
    UserHasRole,
 } from "../middlewares/auth";
-import createHttpError from "http-errors";
+import createHttpError = require("http-errors");
 
 const setoranController = {
    ["/setoran-wajib"]: [
@@ -31,33 +31,81 @@ const setoranController = {
          },
          HasRoleAdmin,
          async (req, res, next) => {
-            SetoranWajib.find()
-               .populate({
-                  path: "memberId",
-                  select: "id nama",
-               })
+            const { page = 0, size = 7, noPage = false } = req.query;
+            const {
+               member = null,
+               bulan = null,
+               tahun = null,
+            } = req.query;
+
+            let dateFilter: any[] = [];
+            if (bulan !== null) {
+               dateFilter.push({
+                  $eq: [{ $month: "$tanggal" }, bulan],
+               });
+            }
+            if (tahun !== null) {
+               dateFilter.push({
+                  $eq: [{ $year: "$tanggal" }, tahun],
+               });
+            }
+
+            const builder = SetoranWajib.find({
+               $expr: {
+                  $and: dateFilter,
+               },
+            }).populate({
+               path: "memberId",
+               select: "id nama",
+               populate: {
+                  path: "user",
+                  select: "id",
+               },
+            });
+
+            if (member)
+               builder.where("memberId").where("id").equals(member);
+
+            if (!noPage) {
+               if (typeof req.query.size === "number") {
+                  builder.limit(+size);
+               }
+
+               if (typeof req.query.page === "number") {
+                  builder.skip(+page * +size);
+               }
+            }
+
+            builder
                .exec()
-               .then((data) => res.status(200).json(data))
+               .then(async (data) =>
+                  res.status(200).json({
+                     total: await SetoranWajib.count().exec(),
+                     page: Number(page),
+                     size: Number(size),
+                     data: data,
+                  })
+               )
                .catch((err) => next(createHttpError(500, err)));
          }
       ),
-      DefineRoute("post", IsLoggedIn, async (req, res) => {
+      DefineRoute("post", IsLoggedIn, async (req, res, next) => {
          try {
-            const { tanggal, deskripsi, memberId } = req.body;
-            let setoran = await SetoranWajib.create({
-               tanggal: tanggal,
-               deskripsi: deskripsi,
-               memberId: memberId,
+            const { tanggal, deskripsi, memberId, saldo } = req.body;
+            const setoran = await SetoranWajib.create({
+               tanggal,
+               deskripsi,
+               memberId,
+               saldo,
             });
             const item = await Member.findOne({ _id: memberId });
             item.setoranId.push({ _id: setoran._id });
             await item.save();
-            res.status(200).json({
-               message: "Data Berhasil Ditambah",
-            });
+
+            res.sendStatus(201);
          } catch (error) {
-            res.send(error.message);
-            // res.status(500).json({ message: "Internal server error" });
+            console.error(error);
+            res.status(500).json(error);
          }
       }),
       DefineRoute("put", IsLoggedIn, async (req, res) => {
@@ -98,13 +146,61 @@ const setoranController = {
          },
          HasRoleAdmin,
          async (req, res, next) => {
-            SetoranPokok.find()
-               .populate({
-                  path: "memberId",
-                  select: "id nama",
-               })
+            const { page = 0, size = 7, noPage = false } = req.query;
+            const {
+               member = null,
+               bulan = null,
+               tahun = null,
+            } = req.query;
+
+            let dateFilter: any[] = [];
+            if (bulan !== null) {
+               dateFilter.push({
+                  $eq: [{ $month: "$tanggal" }, bulan],
+               });
+            }
+            if (tahun !== null) {
+               dateFilter.push({
+                  $eq: [{ $year: "$tanggal" }, tahun],
+               });
+            }
+
+            const builder = SetoranPokok.find({
+               $expr: {
+                  $and: dateFilter,
+               },
+            }).populate({
+               path: "memberId",
+               select: "id nama",
+               populate: {
+                  path: "user",
+                  select: "id",
+               },
+            });
+
+            if (member)
+               builder.where("memberId").where("id").equals(member);
+
+            if (!noPage) {
+               if (typeof req.query.size === "number") {
+                  builder.limit(+size);
+               }
+
+               if (typeof req.query.page === "number") {
+                  builder.skip(+page * +size);
+               }
+            }
+
+            builder
                .exec()
-               .then((data) => res.status(200).json(data))
+               .then(async (data) =>
+                  res.status(200).json({
+                     total: await SetoranWajib.count().exec(),
+                     page: Number(page),
+                     size: Number(size),
+                     data: data,
+                  })
+               )
                .catch((err) => next(createHttpError(500, err)));
          }
       ),

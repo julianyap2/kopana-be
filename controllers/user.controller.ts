@@ -64,6 +64,7 @@ const userController: Controller = {
                   email: newUser.email,
                   nomerPegawaiPertamina: newUser.noPegawaiPertamina,
                   nomerTelepon: newUser.noTlpn,
+                  user: newUser._id
                });
 
                return res.status(201).json(newMember);
@@ -107,18 +108,22 @@ const userController: Controller = {
                   }
 
                   const member = await Member.findOne({ email: email });
-                  res.status(200).json({
-                     message: "Login successful",
-                     data: {
-                        nama: member.nama,
-                        alamat: member.alamat,
-                        email: member.email,
-                        noPegawaiPertamina: member.nomerPegawaiPertamina,
-                        noTlpn: member.nomerTelepon,
-                        id: member._id,
-                        idUser: user._id,
-                     },
-                  });
+                  if (member)
+                     res.status(200).json({
+                        message: "Login successful",
+                        data: {
+                           nama: member.nama,
+                           alamat: member.alamat,
+                           email: member.email,
+                           noPegawaiPertamina:
+                              member.nomerPegawaiPertamina,
+                           noTlpn: member.nomerTelepon,
+                           id: member._id,
+                           idUser: user._id,
+                        },
+                     });
+                  else
+                     res.sendStatus(200)
                } else {
                   console.log("Fail wrong password");
                   next(createHttpError(400, Error("Invalid Password")));
@@ -136,18 +141,18 @@ const userController: Controller = {
 
    ["/logout"]: DefineRoute("get", function Logout(req, res) {
       if (req.user) {
-         req.session.destroy(function (err) {
+         req.session.regenerate(function (err) {
             if (err) {
                console.error(err);
                return res.sendStatus(500);
             }
 
+            delete req.session.user;
             return res.status(200).json({
                message: "Logout succes!",
             });
          });
       }
-      res.sendStatus(200);
    }),
 
    ["/update-password"]: DefineRoute(

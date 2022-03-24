@@ -11,7 +11,7 @@ export const Forbidden = () =>
 
 export const IsLoggedIn: RequestHandler = (req, res, next) => {
    const user = req.session.user;
-   console.log(req.session);
+   // console.log(req.session);
    if (!user) return next(Unauthorized);
    next();
 };
