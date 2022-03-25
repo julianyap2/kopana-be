@@ -12,6 +12,7 @@ import {
    IsLoggedIn,
    Unauthorized,
 } from "../middlewares/auth";
+import { uploadSingle } from '../middlewares/multer'
 
 const SALT = 12;
 const userController: Controller = {
@@ -26,6 +27,7 @@ const userController: Controller = {
 
    ["/sign-up"]: {
       method: "post",
+      uploadSingle,
       async action(req: Request, res: Response, next) {
          try {
             const {

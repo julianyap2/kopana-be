@@ -4,6 +4,7 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 const methodOverride = require("method-override");
+const flash = require("connect-flash");
 const session = require("express-session");
 const cors = require("cors");
 
@@ -58,6 +59,7 @@ module.exports = async function Application(cb) {
         next();
       }
     );
+    app.use(flash())
     app.use(logger("dev"));
     app.use(express.json());
     app.use(express.urlencoded({ extended: false }));

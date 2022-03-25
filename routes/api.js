@@ -2,12 +2,15 @@ const router = require('express').Router({
     caseSensitive: false,
 });
 
-const galeriController = require('../controllers/galeri.controller');
 const setoranController = require('../controllers/setoran.controller');
 const userController = require('../controllers/user.controller');
 const apiController = require('../controllers/ApiTestController');
 const { uploadSingle, uploadMultiple, uploadSingleFix } = require('../middlewares/multer');
 const { ApplyController } = require('../controllers/controller-util');
+
+router.get('/galeri', apiController.ViewGaleri);
+router.post('/galeri', uploadMultiple, apiController.addGaleri);
+router.delete('/galeri/:id', apiController.deleteGaleri);
 
 //setoran wajib
 // router.post('/setoranwajib', apiController.addSetoranWajib);
@@ -42,6 +45,5 @@ router.delete('/saran/:id', apiController.deleteSaran);
 
 module.exports = ApplyController(router)(
     userController,
-    galeriController,
     setoranController
 );
