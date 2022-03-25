@@ -22,12 +22,9 @@ const galeriController: Controller = {
                await newUpload.save();
             })
          )
-            .then(() => res.status(201).json("Gambar berhasil di upload"))
+            .then(() => res.status(201).send("Gambar berhasil di upload"))
             .catch((e) => {
-               res.status(500).json({
-                  message: "Something went wrong in /uploads/img",
-                  error: e,
-               });
+               res.status(500).json(e);
             });
       }),
    ],
