@@ -103,9 +103,9 @@ const userController: Controller = {
                   delete (user as any).password;
                   req.user = req.session.user = user as any;
 
-                  if (user.email === "admin@admin.com") {
-                     return res.status(200).json(user);
-                  }
+                  // if (user.email === "admin@admin.com") {
+                  //    return res.status(200).json(user);
+                  // }
 
                   const member = await Member.findOne({ email: email });
                   if (member)

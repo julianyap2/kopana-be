@@ -10,6 +10,7 @@ if (process.env.NODE_ENV === 'development')
 
 var server;
 var debug = require('debug')('server-staycation:server');
+var port = normalizePort(process.env.PORT || '3000');
 
 require('../app')(function (app) {
 
@@ -19,7 +20,6 @@ require('../app')(function (app) {
    * Get port from environment and store in Express.
    */
 
-  var port = normalizePort(process.env.PORT || '3000');
   app.set('port', port);
 
   /**

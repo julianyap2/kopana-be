@@ -310,18 +310,10 @@ module.exports = {
         .populate({ path: "setoranPokokId", select: "id tanggal deskripsi" });
 
       const { foto } = member;
-      // try {
-      //   const fileFoto = readFileSync(join(process.cwd(), foto));
-      //   member.foto = fileFoto.toString("base64");
-      // } catch (err) {
-      //   console.error(err);
-      //   member.foto = null;
-      // }
       if (member.foto) {
         member.foto = member.foto.replace(/\\/g, "/");
         member.foto = member.foto.replace("public", "");
       }
-      // console.log(member.foto);
       res.status(200).json(member);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });

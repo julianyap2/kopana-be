@@ -107,13 +107,12 @@ async function createDefaultRoles() {
     userRole = await (await UserRoleModel.create(User)).save();
   }
 
-  let userAdmin = await UserModel.findOne({ email: 'admin' });
-  // if(userAdmin) userAdmin.delete();
+  let userAdmin = await UserModel.findOne({ email: 'admin@kopana' });
   if (!userAdmin) {
     const user = await UserModel.create({
       nama: 'admin',
       password: require('bcryptjs').hashSync('admin', 12),
-      email: 'admin',
+      email: 'admin@kopana',
       noPegawaiPertamina: '@admin:pertamina',
       roles: [userRole._id, adminRole._id]
     });

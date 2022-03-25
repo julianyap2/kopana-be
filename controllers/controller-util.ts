@@ -1,6 +1,6 @@
 import type { RequestHandler, Router } from "express";
 
-export function DefineRoute(method: HttpMethod, ...action: RequestHandler[]) {
+export function DefineRoute(method: HttpMethod, ...action: RequestHandler[]): ControllerRoute {
    return {
       method,
       action,
