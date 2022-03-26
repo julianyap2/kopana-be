@@ -94,7 +94,7 @@ const userController: Controller = {
             if (!email && !password)
                return next(createHttpError(400, Error("No Input!")));
 
-            const user = await Users.findOne({ email: email });
+            const user = await Users.findOne({ email: email }).populate('roles');
             if (user) {
                const isPasswordMatch = await bcrypt.compare(
                   password,
@@ -113,6 +113,7 @@ const userController: Controller = {
                   if (member)
                      res.status(200).json({
                         message: "Login successful",
+                        roles: user.roles.map(e => e.name),
                         data: {
                            nama: member.nama,
                            alamat: member.alamat,

@@ -2,12 +2,15 @@ import { DefineRoute } from "./controller-util";
 import SetoranWajib = require("../models/SetoranWajib");
 import SetoranPokok = require("../models/SetoranPokok");
 import Member = require("../models/Member");
+import mongo = require("mongodb");
 import {
    HasRoleAdmin,
    IsLoggedIn,
    UserHasRole,
 } from "../middlewares/auth";
 import createHttpError = require("http-errors");
+import mongoose, { Model } from "mongoose";
+import { RequestHandler } from "express";
 
 const setoranController = {
    ["/setoran-wajib"]: [
@@ -30,64 +33,7 @@ const setoranController = {
                .catch((err) => next(createHttpError(500, err)));
          },
          HasRoleAdmin,
-         async (req, res, next) => {
-            const { page = 0, size = 7, noPage = false } = req.query;
-            const {
-               member = null,
-               bulan = null,
-               tahun = null,
-            } = req.query;
-
-            let dateFilter: any[] = [];
-            if (bulan !== null) {
-               dateFilter.push({
-                  $eq: [{ $month: "$tanggal" }, bulan],
-               });
-            }
-            if (tahun !== null) {
-               dateFilter.push({
-                  $eq: [{ $year: "$tanggal" }, tahun],
-               });
-            }
-
-            const builder = SetoranWajib.find({
-               $expr: {
-                  $and: dateFilter,
-               },
-            }).populate({
-               path: "memberId",
-               select: "id nama",
-               populate: {
-                  path: "user",
-                  select: "id",
-               },
-            });
-
-            if (member)
-               builder.where("memberId").where("id").equals(member);
-
-            if (!noPage) {
-               if (typeof req.query.size === "number") {
-                  builder.limit(+size);
-               }
-
-               if (typeof req.query.page === "number") {
-                  builder.skip(+page * +size);
-               }
-            }
-
-            builder
-               .exec()
-               .then(async (data) =>
-                  res.status(200).json({
-                     total: await SetoranWajib.count().exec(),
-                     page: Number(page),
-                     size: Number(size),
-                     data: data,
-                  })
-               )
-               .catch((err) => next(createHttpError(500, err)));
-         }
+         filterQuery(SetoranWajib)
       ),
       DefineRoute("post", IsLoggedIn, async (req, res, next) => {
          try {
@@ -145,64 +91,7 @@ const setoranController = {
                .catch((err) => next(createHttpError(500, err)));
          },
          HasRoleAdmin,
-         async (req, res, next) => {
-            const { page = 0, size = 7, noPage = false } = req.query;
-            const {
-               member = null,
-               bulan = null,
-               tahun = null,
-            } = req.query;
-
-            let dateFilter: any[] = [];
-            if (bulan !== null) {
-               dateFilter.push({
-                  $eq: [{ $month: "$tanggal" }, bulan],
-               });
-            }
-            if (tahun !== null) {
-               dateFilter.push({
-                  $eq: [{ $year: "$tanggal" }, tahun],
-               });
-            }
-
-            const builder = SetoranPokok.find({
-               $expr: {
-                  $and: dateFilter,
-               },
-            }).populate({
-               path: "memberId",
-               select: "id nama",
-               populate: {
-                  path: "user",
-                  select: "id",
-               },
-            });
-
-            if (member)
-               builder.where("memberId").where("id").equals(member);
-
-            if (!noPage) {
-               if (typeof req.query.size === "number") {
-                  builder.limit(+size);
-               }
-
-               if (typeof req.query.page === "number") {
-                  builder.skip(+page * +size);
-               }
-            }
-
-            builder
-               .exec()
-               .then(async (data) =>
-                  res.status(200).json({
-                     total: await SetoranWajib.count().exec(),
-                     page: Number(page),
-                     size: Number(size),
-                     data: data,
-                  })
-               )
-               .catch((err) => next(createHttpError(500, err)));
-         }
+         filterQuery(SetoranPokok)
       ),
       DefineRoute("post", IsLoggedIn, async (req, res) => {
          try {
@@ -242,3 +131,60 @@ const setoranController = {
 } as Controller;
 
 export = setoranController;
+
+const { ObjectId } = mongo;
+function filterQuery(schemaModel: Model<any>): RequestHandler {
+   return (req, res, next) => {
+      const { page = 0, size = 7, noPage = false } = req.query;
+      const { member = null, bulan = null, tahun = null } = req.query;
+
+      let dateFilter: any[] = [];
+      const filter = {} as any;
+      // if (typeof member === "string")
+      //    filter.push({
+      //       $eq: { memberId: new mongoose.Types.ObjectId(member) },
+      //    });
+      if (bulan) dateFilter.push({ $eq: [{ $month: "$tanggal" }, bulan] });
+      if (tahun) dateFilter.push({ $eq: [{ $year: "$tanggal" }, tahun] });
+
+      if (typeof member === "string") {
+         filter.memberId = new ObjectId(member);
+      }
+
+      if (dateFilter.length > 0) {
+         filter.$expr = {
+            $and: dateFilter,
+         };
+      }
+
+      const builder = schemaModel.find(filter);
+
+      if (!noPage) {
+         if (typeof req.query.size === "number") {
+            builder.limit(+size);
+         }
+
+         if (typeof req.query.page === "number") {
+            builder.skip(+page * +size);
+         }
+      }
+
+      console.log(builder.toString());
+      builder
+         .populate({
+            path: "memberId",
+            select: "id nama",
+         })
+         .exec()
+         .then(async (data) => {
+            console.log(data);
+            res.status(200).json({
+               total: await SetoranWajib.count().exec(),
+               page: Number(page),
+               size: Number(size),
+               data: data,
+            });
+         })
+         .catch((err) => next(createHttpError(500, err)));
+   };
+}
