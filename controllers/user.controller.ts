@@ -12,23 +12,20 @@ import {
    IsLoggedIn,
    Unauthorized,
 } from "../middlewares/auth";
-import { uploadSingle } from '../middlewares/multer'
+import { uploadSingle } from "../middlewares/multer";
 
 const SALT = 12;
 const userController: Controller = {
-   ["/whoami"]: {
-      method: "get",
-      async action(req, res, next) {
-         const u = req.user;
-         if (!u) return next(createHttpError(Unauthorized()));
-         res.json(u);
-      },
-   },
+   ["/whoami"]: DefineRoute("get", async (req, res, next) => {
+      const u = req.user;
+      if (!u) return next(createHttpError(Unauthorized()));
+      res.json(u);
+   }),
 
-   ["/sign-up"]: {
-      method: "post",
+   ["/sign-up"]: DefineRoute(
+      "post",
       uploadSingle,
-      async action(req: Request, res: Response, next) {
+      async (req, res, next) => {
          try {
             const {
                nama,
@@ -66,7 +63,7 @@ const userController: Controller = {
                   email: newUser.email,
                   nomerPegawaiPertamina: newUser.noPegawaiPertamina,
                   nomerTelepon: newUser.noTlpn,
-                  user: newUser._id
+                  user: newUser._id,
                });
 
                return res.status(201).json(newMember);
@@ -76,71 +73,68 @@ const userController: Controller = {
          } catch (error) {
             next(createHttpError(500, error));
          }
-      },
-   },
-
-   ["/login"]: DefineRoute(
-      "post",
-      async function Login(req: Request, res: Response, next) {
-         console.log("User try to login...");
-
-         if (req.user) {
-            const user = req.user;
-            const member = Member.findOne({ email: user.email });
-         }
-
-         try {
-            const { email, password } = req.body;
-            if (!email && !password)
-               return next(createHttpError(400, Error("No Input!")));
-
-            const user = await Users.findOne({ email: email }).populate('roles');
-            if (user) {
-               const isPasswordMatch = await bcrypt.compare(
-                  password,
-                  user.password
-               );
-
-               if (isPasswordMatch) {
-                  delete (user as any).password;
-                  req.user = req.session.user = user as any;
-
-                  // if (user.email === "admin@admin.com") {
-                  //    return res.status(200).json(user);
-                  // }
-
-                  const member = await Member.findOne({ email: email });
-                  if (member)
-                     res.status(200).json({
-                        message: "Login successful",
-                        roles: user.roles.map(e => e.name),
-                        data: {
-                           nama: member.nama,
-                           alamat: member.alamat,
-                           email: member.email,
-                           noPegawaiPertamina:
-                              member.nomerPegawaiPertamina,
-                           noTlpn: member.nomerTelepon,
-                           id: member._id,
-                           idUser: user._id,
-                        },
-                     });
-                  else
-                     res.sendStatus(200)
-               } else {
-                  console.log("Fail wrong password");
-                  next(createHttpError(400, Error("Invalid Password")));
-               }
-            } else {
-               console.log("Not Exist!");
-               return next(createHttpError(404, Error("User not found!")));
-            }
-         } catch (error) {
-            console.error(error);
-            return next(createHttpError(500, error));
-         }
       }
    ),
+
+   ["/login"]: DefineRoute("post", async (req, res, next) => {
+      console.log("User try to login...");
+
+      if (req.user) {
+         const user = req.user;
+         const member = Member.findOne({ email: user.email });
+      }
+
+      try {
+         const { email, password } = req.body;
+         if (!email && !password)
+            return next(createHttpError(400, Error("No Input!")));
+
+         const user = await Users.findOne({ email: email }).populate(
+            "roles"
+         );
+         if (user) {
+            const isPasswordMatch = await bcrypt.compare(
+               password,
+               user.password
+            );
+
+            if (isPasswordMatch) {
+               delete (user as any).password;
+               req.user = req.session.user = user as any;
+
+               // if (user.email === "admin@admin.com") {
+               //    return res.status(200).json(user);
+               // }
+
+               const member = await Member.findOne({ email: email });
+               if (member)
+                  res.status(200).json({
+                     message: "Login successful",
+                     roles: user.roles.map((e) => e.name),
+                     data: {
+                        nama: member.nama,
+                        alamat: member.alamat,
+                        email: member.email,
+                        noPegawaiPertamina: member.nomerPegawaiPertamina,
+                        noTlpn: member.nomerTelepon,
+                        id: member._id,
+                        idUser: user._id,
+                     },
+                  });
+               else res.sendStatus(200);
+            } else {
+               console.log("Fail wrong password");
+               next(createHttpError(400, Error("Invalid Password")));
+            }
+         } else {
+            console.log("Not Exist!");
+            return next(createHttpError(404, Error("User not found!")));
+         }
+      } catch (error) {
+         console.error(error);
+         return next(createHttpError(500, error));
+      }
+   }),
 
    ["/logout"]: DefineRoute("get", function Logout(req, res) {
       if (req.user) {

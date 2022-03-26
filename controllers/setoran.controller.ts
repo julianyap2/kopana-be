@@ -35,26 +35,8 @@ const setoranController = {
          HasRoleAdmin,
          filterQuery(SetoranWajib)
       ),
-      DefineRoute("post", IsLoggedIn, async (req, res, next) => {
-         try {
-            const { tanggal, deskripsi, memberId, saldo } = req.body;
-            const setoran = await SetoranWajib.create({
-               tanggal,
-               deskripsi,
-               memberId,
-               saldo,
-            });
-            const item = await Member.findOne({ _id: memberId });
-            item.setoranId.push({ _id: setoran._id });
-            await item.save();
-
-            res.sendStatus(201);
-         } catch (error) {
-            console.error(error);
-            res.status(500).json(error);
-         }
-      }),
-      DefineRoute("put", IsLoggedIn, async (req, res) => {
+      DefineRoute("post", IsLoggedIn, HasRoleAdmin, createSetoran(SetoranWajib, 'setoranId')),
+      DefineRoute("put", IsLoggedIn, HasRoleAdmin, async (req, res) => {
          try {
             const { id, tanggal, deskripsi } = req.body;
             const updateOne = await SetoranWajib.findOne({ _id: id });
@@ -93,26 +75,8 @@ const setoranController = {
          HasRoleAdmin,
          filterQuery(SetoranPokok)
       ),
-      DefineRoute("post", IsLoggedIn, async (req, res) => {
-         try {
-            const { tanggal, deskripsi, memberId } = req.body;
-            let setoran = await SetoranPokok.create({
-               tanggal: tanggal,
-               deskripsi: deskripsi,
-               memberId: memberId,
-            });
-            const item = await Member.findOne({ _id: memberId });
-            item.setoranId.push({ _id: setoran._id });
-            await item.save();
-            res.status(200).json({
-               message: "Data Berhasil Ditambah",
-            });
-         } catch (error) {
-            res.send(error.message);
-            // res.status(500).json({ message: "Internal server error" });
-         }
-      }),
-      DefineRoute("put", IsLoggedIn, async (req, res) => {
+      DefineRoute("post", IsLoggedIn, HasRoleAdmin, createSetoran(SetoranPokok, 'setoranPokokId')),
+      DefineRoute("put", IsLoggedIn, HasRoleAdmin, async (req, res) => {
          try {
             const { id, tanggal, deskripsi } = req.body;
             const updateOne = await SetoranPokok.findOne({ _id: id });
@@ -169,7 +133,6 @@ function filterQuery(schemaModel: Model<any>): RequestHandler {
          }
       }
 
-      console.log(builder.toString());
       builder
          .populate({
             path: "memberId",
@@ -186,5 +149,34 @@ function filterQuery(schemaModel: Model<any>): RequestHandler {
             });
          })
          .catch((err) => next(createHttpError(500, err)));
+   };
+}
+
+function createSetoran(schemaModel: Model<any>, prop: string): RequestHandler {
+   return async (req, res, next) => {
+      try {
+         const { tanggal, deskripsi, memberId, saldo } = req.body;
+         const member = await Member.findOne({ _id: memberId });
+         if(member) {
+            const setoran = await schemaModel.create({
+               memberId: memberId,
+               tanggal,
+               deskripsi,
+               saldo,
+            })
+
+            member[prop].push({ _id: setoran._id });
+
+            await member.save();
+
+            return res.status(200).json({
+               message: "Data Berhasil Ditambah",
+            });
+         }
+         next(createHttpError(404, Error('Unknown member')))
+      } catch (err) {
+         console.error(err);
+         next(createHttpError(500, err));
+      }
    };
 }

@@ -306,8 +306,8 @@ module.exports = {
   ViewDataProfileById: async (req, res) => {
     try {
       const member = await Member.findOne({ _id: req.params.id })
-        .populate({ path: "setoranId", select: "id tanggal deskripsi" })
-        .populate({ path: "setoranPokokId", select: "id tanggal deskripsi" });
+        .populate({ path: "setoranId", select: "id tanggal deskripsi saldo" })
+        .populate({ path: "setoranPokokId", select: "id tanggal deskripsi saldo" });
 
       const { foto } = member;
       if (member.foto) {
